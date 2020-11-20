@@ -1,36 +1,41 @@
-#this is my app.py
-
-from matplotlib import style
-style.use('fivethirtyeight')
-import matplotlib.pyplot as plt
+import sqlalchemy
+import datetime as dt
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func, inspect
 import numpy as np
 import pandas as pd
-import datetime as dt
+import json
 
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
-from flask import Flask, jsonify
-
-#Jupyter and VSC can run the same code. So we'll take the code that gives us results from Part 1 in Jupyter, copy and paste into VSC and then run it under the
-#route such as @app.route("/"), which will then send it to the website that Flask is creating. It's returning a function under that snippet of code, using the variable that we 
-# define under the dependencies that we import. Also, run the code in the terminal section at the bottom of VSC by typing in python app.py because the run button isn't working. 
-
+Base = automap_base()
+Base.prepare(engine, reflect=True)
+Base.classes.keys()
+measurement=Base.classes.measurement
+station=Base.classes.station
+session=Session(engine)
+from flask import Flask, jsonify  
 
 prev_year=dt.date(2017,8,23)-dt.timedelta(days=365)
 results=session.query(measurement.date, measurement.prcp).filter(measurement.date >= prev_year).all()
 df= pd.DataFrame(results, columns = ['date', 'precipitation'])
 precip_df=df.sort_values("date")
-precip_df.to_json(path_or_buf=None, orient=None, date_format=None, double_precision=10, force_ascii=True, date_unit='ms', default_handler=None, lines=False, compression='infer', index=True)
-precip_json=precip_df.to_json(path_or_buf=None, orient=None, date_format=None, double_precision=10, force_ascii=True, date_unit='ms', default_handler=None, lines=False, compression='infer', index=True)
 
+date=precip_df["date"].tolist()
+precip=precip_df["precipitation"].tolist()
+date_precip=dict(zip(date,precip))
+date_precip_json = json.dumps(date_precip) 
 
 app = Flask(__name__)
+precipitation= date_precip_json
 
-hello_dict = {"Hello": "World!"}
-precipitation= precip_json
-stations= "places"
+session.query(measurement.station).all()
+stations=session.query(measurement.station).all()
+stations=tuple(stations)
+
+
 observations="temps"
-
-
 
 @app.route("/")
 def home():
@@ -40,6 +45,12 @@ def home():
 @app.route("/api/v1.0/precipitation")
 def precip():
     return precipitation
+
+#the logic for "stations" is in place. It uses a tuple (line 35). Trying to use it returns the error 
+#"TypeError: The view function did not return a valid response tuple. 
+# The tuple must have the form (body, status, headers), (body, status), or (body, headers)."
+#What do I need to do to get the tuple functioning? Why does it need a form that includes more
+#than one element?
 
 @app.route("/api/v1.0/stations")
 def places():
