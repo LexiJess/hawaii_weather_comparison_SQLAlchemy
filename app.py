@@ -17,25 +17,34 @@ station=Base.classes.station
 session=Session(engine)
 from flask import Flask, jsonify  
 
+#setting up the JSON for precipitation
 prev_year=dt.date(2017,8,23)-dt.timedelta(days=365)
 results=session.query(measurement.date, measurement.prcp).filter(measurement.date >= prev_year).all()
 df= pd.DataFrame(results, columns = ['date', 'precipitation'])
 precip_df=df.sort_values("date")
-
 date=precip_df["date"].tolist()
 precip=precip_df["precipitation"].tolist()
 date_precip=dict(zip(date,precip))
 date_precip_json = json.dumps(date_precip) 
-
-app = Flask(__name__)
 precipitation= date_precip_json
 
+app = Flask(__name__)
+
+#Setting up the JSON for stations
 session.query(measurement.station).all()
 stations=session.query(measurement.station).all()
-stations=tuple(stations)
+stations_json=json.dumps(stations)
 
+#Setting up the JSON for temp observations for previous year
+results_tobs=session.query(measurement.date, measurement.tobs).filter(measurement.date >= prev_year).all()
+df_tobs= pd.DataFrame(results_tobs, columns = ['date', 'temps'])
+df_tobs_sorted=df_tobs.sort_values("date")
+df_tobs_sorted_date=df_tobs_sorted["date"].tolist()
+df_tobs_sorted_temps=df_tobs_sorted["temps"].tolist()
+df_tobs_sorted_date_temps=dict(zip(df_tobs_sorted_date,df_tobs_sorted_temps))
+df_tobs_sorted_date_temps
+tobs=json.dumps(df_tobs_sorted_date_temps)
 
-observations="temps"
 
 @app.route("/")
 def home():
@@ -46,19 +55,14 @@ def home():
 def precip():
     return precipitation
 
-#the logic for "stations" is in place. It uses a tuple (line 35). Trying to use it returns the error 
-#"TypeError: The view function did not return a valid response tuple. 
-# The tuple must have the form (body, status, headers), (body, status), or (body, headers)."
-#What do I need to do to get the tuple functioning? Why does it need a form that includes more
-#than one element?
 
 @app.route("/api/v1.0/stations")
 def places():
-    return stations
+    return stations_json
 
 @app.route("/api/v1.0/tobs")
 def observations():
-    return observations
+    return tobs
 
 @app.route("/api/v1.0/<start>")  
 @app.route("/api/v1.0/<start>/<end>")
