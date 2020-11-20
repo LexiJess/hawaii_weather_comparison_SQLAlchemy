@@ -28,8 +28,6 @@ date_precip=dict(zip(date,precip))
 date_precip_json = json.dumps(date_precip) 
 precipitation= date_precip_json
 
-app = Flask(__name__)
-
 #Setting up the JSON for stations
 session.query(measurement.station).all()
 stations=session.query(measurement.station).all()
@@ -45,6 +43,7 @@ df_tobs_sorted_date_temps=dict(zip(df_tobs_sorted_date,df_tobs_sorted_temps))
 df_tobs_sorted_date_temps
 tobs=json.dumps(df_tobs_sorted_date_temps)
 
+app = Flask(__name__)
 
 @app.route("/")
 def home():
@@ -64,11 +63,31 @@ def places():
 def observations():
     return tobs
 
-@app.route("/api/v1.0/<start>")  
+@app.route("/api/v1.0/<start>") 
+def calc_temps_given_dates(start_date, end_date=None):
+    if end_date is None:
+        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+            filter(measurement.date >= start_date).all()
+    else:
+        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+            filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
+    return temps
+
+
 @app.route("/api/v1.0/<start>/<end>")
-def averages(start=None, end=None):
-    
-    return start
+def averages(start_date=None, end_date=None):
+    if end_date is None:
+        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+            filter(measurement.date >= start_date).all()
+    else:
+        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+            filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
+        temps_json=json.dumps(temps)
+    return temps_json
+   
+#Not sure why this is an error. It's telling me that "averages()" used an unexpected keyword "start"
+# That keyword is not used in the averages function. So...?   
+# does this need an input format for the user to enter the dates?   
 
 
 @app.route("/jsonified")
