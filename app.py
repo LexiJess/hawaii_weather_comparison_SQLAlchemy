@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import json
 
-engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///Resources/hawaii.sqlite", connect_args={'check_same_thread': False})
 
 Base = automap_base()
 Base.prepare(engine, reflect=True)
@@ -61,33 +61,24 @@ def places():
 
 @app.route("/api/v1.0/tobs")
 def observations():
-    return tobs
+    return jsonify(df_tobs_sorted_date_temps)
 
-@app.route("/api/v1.0/<start>") 
-def calc_temps_given_dates(start_date, end_date=None):
-    if end_date is None:
-        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+@app.route("/api/v1.0/<start_date>") 
+def calc_temps_given_dates(start_date):
+    temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
             filter(measurement.date >= start_date).all()
-    else:
-        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
-            filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
-    return temps
+    return jsonify(temps[0])
 
 
-@app.route("/api/v1.0/<start>/<end>")
-def averages(start_date=None, end_date=None):
-    if end_date is None:
-        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
-            filter(measurement.date >= start_date).all()
-    else:
-        temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+
+@app.route("/api/v1.0/<start_date>/<end_date>")
+def averages(start_date, end_date):
+ 
+    temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
             filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
-        temps_json=json.dumps(temps)
-    return temps_json
+       
+    return jsonify(temps[0])
    
-#Not sure why this is an error. It's telling me that "averages()" used an unexpected keyword "start"
-# That keyword is not used in the averages function. So...?   
-# does this need an input format for the user to enter the dates?   
 
 
 @app.route("/jsonified")
