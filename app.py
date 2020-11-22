@@ -29,8 +29,10 @@ date_precip_json = json.dumps(date_precip)
 precipitation= date_precip_json
 
 #Setting up the JSON for stations
-session.query(measurement.station).all()
-stations=session.query(measurement.station).all()
+session.query(measurement.station,func.count(measurement.station)).\
+group_by(measurement.station).all()
+stations=(session.query(measurement.station)).\
+group_by(measurement.station).all()
 stations_json=json.dumps(stations)
 
 #Setting up the JSON for temp observations for previous year
@@ -52,7 +54,7 @@ def home():
 
 @app.route("/api/v1.0/precipitation")
 def precip():
-    return precipitation
+    return jsonify(date_precip_json)
 
 
 @app.route("/api/v1.0/stations")
@@ -74,10 +76,10 @@ def calc_temps_given_dates(start_date):
 @app.route("/api/v1.0/<start_date>/<end_date>")
 def averages(start_date, end_date):
  
-    temps = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
+    temps2 = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
             filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
        
-    return jsonify(temps[0])
+    return jsonify(temps2[0])
    
 
 
